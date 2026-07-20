@@ -14,7 +14,6 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from database import get_session
 from models import Video, Schedule, UploadFailure, ActivityLog
 from storage_backend import resolve_upload_path
-from integrations import youtube, telemetry
 from integrations import youtube, telegram
 from sqlalchemy.orm import joinedload
 from models import Video
