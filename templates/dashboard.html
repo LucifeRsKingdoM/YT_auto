@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Transmission Console{% endblock %}
+{% block page %}dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Mission Control</h1>
+  <p>Live view of your upload pipeline. Tap a tile to see what's inside it.</p>
+</div>
+
+<div class="grid tiles">
+  <div class="tile" data-tile="total"><div class="label">Total videos</div><div class="value" id="t-total">—</div></div>
+  <div class="tile" data-tile="in_queue"><div class="label">In queue</div><div class="value" id="t-queue">—</div></div>
+  <div class="tile" data-tile="published"><div class="label">Published</div><div class="value" id="t-pub">—</div></div>
+  <div class="tile" data-tile="storage"><div class="label">Storage used</div><div class="value" id="t-storage">—</div></div>
+</div>
+
+<div class="card section-gap" id="tile-panel" style="display:none">
+  <h2 id="tile-panel-title">Videos <span class="tag">DRILL-DOWN</span></h2>
+  <div id="tile-panel-body"></div>
+</div>
+
+<div class="grid two-col section-gap">
+  <div class="card">
+    <h2>Engagement overview <span class="tag">NEAR-REAL-TIME</span>
+      <span class="spacer" style="flex:1"></span>
+      <button class="btn ghost sm" id="refresh-engagement">Refresh</button>
+    </h2>
+    <div class="stat-row" id="engagement-totals"></div>
+    <div id="engagement-list" class="section-gap"></div>
+  </div>
+
+  <div class="card">
+    <h2>Activity log <span class="tag">LAST 10</span></h2>
+    <div id="activity-list"></div>
+    <div class="flex between section-gap">
+      <button class="btn ghost sm" id="act-prev" disabled>‹ Prev</button>
+      <span class="mono muted" id="act-page">page 1</span>
+      <button class="btn ghost sm" id="act-next">Next ›</button>
+    </div>
+  </div>
+</div>
+
+<div class="card section-gap">
+  <h2>Recent videos <span class="tag">LATEST</span></h2>
+  <div id="recent-list"></div>
+</div>
+{% endblock %}

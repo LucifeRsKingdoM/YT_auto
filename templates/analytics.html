@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Analytics — Transmission Console{% endblock %}
+{% block page %}analytics{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Analytics</h1>
+  <p>Channel performance over any window. Data is near-real-time (YouTube reporting lags a few hours to a day).</p>
+</div>
+
+<div class="card">
+  <div class="cal-controls">
+    <div class="tabs" style="margin:0">
+      <button data-preset="daily">Daily</button>
+      <button data-preset="weekly" class="active">Weekly</button>
+      <button data-preset="monthly">Monthly</button>
+      <button data-preset="yearly">Yearly</button>
+    </div>
+    <label class="fld" style="margin:0"><span>From</span><input type="date" id="a-start"></label>
+    <label class="fld" style="margin:0"><span>To</span><input type="date" id="a-end"></label>
+    <button class="btn ghost sm" id="a-range">Apply range</button>
+  </div>
+  <div class="cal-controls">
+    <label class="fld" style="margin:0;flex:1">
+      <span>Specific days (comma separated, e.g. 2026-07-12,2026-07-13,2026-07-14)</span>
+      <input id="a-days" placeholder="YYYY-MM-DD, YYYY-MM-DD, …">
+    </label>
+    <button class="btn ghost sm" id="a-days-btn">Show these days</button>
+  </div>
+
+  <div class="stat-row section-gap" id="a-totals"></div>
+  <div class="bars" id="a-bars"></div>
+  <div class="bar-labels" id="a-labels"></div>
+</div>
+{% endblock %}

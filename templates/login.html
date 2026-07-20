@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in — Transmission Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="login-wrap">
+    <form class="login-card" method="post" action="{{ url_for('auth.login') }}">
+      <div class="brand">TRANSMIT<span>.</span>YT</div>
+      <div class="sub">UPLOAD CONTROL — RESTRICTED</div>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+          <div class="flash">{{ msg }}</div>
+        {% endfor %}
+      {% endwith %}
+      <label class="fld"><span>Operator</span>
+        <input name="username" autocomplete="username" autofocus required>
+      </label>
+      <label class="fld"><span>Password</span>
+        <input name="password" type="password" autocomplete="current-password" required>
+      </label>
+      <button class="btn" style="width:100%;margin-top:8px" type="submit">Sign in</button>
+    </form>
+  </div>
+</body>
+</html>

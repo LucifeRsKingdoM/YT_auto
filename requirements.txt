@@ -1,0 +1,21 @@
+Flask==3.0.3
+SQLAlchemy==2.0.34
+APScheduler==3.10.4
+python-dotenv==1.0.1
+bcrypt==4.2.0
+cryptography==43.0.1
+openpyxl==3.1.5
+requests==2.32.3
+
+# Cloud DB (Supabase / Postgres) — needed only when DB_MODE=cloud
+psycopg2-binary==2.9.9
+supabase==2.7.4
+
+# Local DB — needed only when DB_MODE=local
+PyMySQL==1.1.1
+
+# YouTube (upload + analytics)
+google-api-python-client==2.143.0
+google-auth==2.34.0
+google-auth-oauthlib==1.2.1
+google-auth-httplib2==0.2.0

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Settings — Transmission Console{% endblock %}
+{% block page %}settings{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Settings</h1>
+  <p>Two operators only. Login passwords and safe words are set in the .env file and stored as hashes.</p>
+</div>
+
+<div class="card">
+  <h2>Operators <span class="tag">ACCESS</span></h2>
+  <table>
+    <thead><tr><th>Operator</th><th>Created</th></tr></thead>
+    <tbody id="admins-body"></tbody>
+  </table>
+</div>
+
+<div class="card section-gap">
+  <h2>Environment <span class="tag">READ-ONLY</span></h2>
+  <div class="mono muted">Active database mode: <b id="s-db" style="color:var(--cyan)">—</b></div>
+  <p class="muted section-gap" style="font-size:13px">
+    To change passwords or safe words, edit the <code>.env</code> file and restart the app.
+    New values are re-hashed automatically on startup. Credentials are never stored in plain text.
+  </p>
+</div>
+{% endblock %}

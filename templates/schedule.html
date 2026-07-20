@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Schedule — Transmission Console{% endblock %}
+{% block page %}schedule{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Schedule</h1>
+  <p>Pick a day to schedule videos one by one, or drop a batch into fixed time slots. Times are your local time.</p>
+</div>
+
+<div class="grid two-col">
+  <!-- DAY / INDIVIDUAL -->
+  <div class="card">
+    <h2>By day <span class="tag">INDIVIDUAL</span></h2>
+    <label class="fld"><span>Choose a day</span><input type="date" id="day-picker"></label>
+
+    <div id="day-scheduled" class="section-gap"></div>
+
+    <h2 class="section-gap">Available to schedule <span class="tag">DRAFTS</span></h2>
+    <div id="day-available" class="pick-list"></div>
+    <div class="flex section-gap" style="gap:10px">
+      <input type="time" id="ind-time" value="08:00" style="max-width:130px">
+      <button class="btn sm" id="ind-schedule">Schedule selected at this time</button>
+    </div>
+  </div>
+
+  <!-- SLOT MODE -->
+  <div class="card">
+    <h2>By slots <span class="tag">AUTO ORDER</span></h2>
+    <p class="muted" style="font-size:13px;margin-top:-6px">
+      Videos fill the slots in order: 1st→slot 1, 2nd→slot 2… then rolls to the next day.
+    </p>
+    <label class="fld"><span>Start day</span><input type="date" id="slot-date"></label>
+    <label class="fld"><span>Add a slot (HH:MM)</span>
+      <div class="flex"><input type="time" id="slot-input" value="08:00">
+        <button class="btn ghost sm" id="slot-add">Add</button></div>
+    </label>
+    <div id="slot-chips"></div>
+
+    <h2 class="section-gap">Queue order <span class="tag">DRAFTS</span></h2>
+    <div id="slot-available" class="pick-list"></div>
+    <button class="btn section-gap" id="slot-schedule" style="margin-top:14px">Assign to slots</button>
+  </div>
+</div>
+{% endblock %}

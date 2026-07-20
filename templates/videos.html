@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Videos — Transmission Console{% endblock %}
+{% block page %}videos{% endblock %}
+{% block content %}
+<div class="page-head flex between">
+  <div>
+    <h1>Videos</h1>
+    <p>Everything in the pipeline, grouped by state. Failed uploads keep their logs.</p>
+  </div>
+  <div class="flex">
+    <button class="btn ghost sm" id="btn-export">Export .xlsx</button>
+    <label class="btn ghost sm" style="margin:0">Import .xlsx
+      <input type="file" id="import-file" accept=".xlsx" hidden>
+    </label>
+    <button class="btn sm" id="btn-add">+ Add video</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <button data-tab="all" class="active">All</button>
+  <button data-tab="scheduled">Scheduled</button>
+  <button data-tab="uploaded">Uploaded</button>
+  <button data-tab="failed">Upload failed</button>
+</div>
+
+<div class="card">
+  <div id="video-table"></div>
+</div>
+
+<!-- add / edit modal -->
+<div class="overlay" id="video-modal">
+  <div class="modal">
+    <h3 id="vm-title">Add video</h3>
+    <input type="hidden" id="vm-id">
+    <label class="fld"><span>Title</span><input id="vm-title-in" required></label>
+    <label class="fld"><span>Description</span><textarea id="vm-desc" rows="3"></textarea></label>
+    <label class="fld"><span>Tags (comma separated)</span><input id="vm-tags"></label>
+    <label class="fld"><span>Privacy</span>
+      <select id="vm-privacy">
+        <option value="private">Private</option>
+        <option value="unlisted">Unlisted</option>
+        <option value="public">Public</option>
+      </select>
+    </label>
+    <label class="fld" id="vm-file-wrap"><span>Video file</span><input type="file" id="vm-file" accept="video/*"></label>
+    <div class="modal-actions">
+      <button class="btn ghost" id="vm-cancel">Cancel</button>
+      <button class="btn" id="vm-save">Save</button>
+    </div>
+  </div>
+</div>
+{% endblock %}

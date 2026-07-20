@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Transmission Console{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body data-page="{% block page %}{% endblock %}">
+
+  <!-- SIGNATURE: transmission status bar, present on every screen -->
+  <div class="transmit-bar">
+    <div class="transmit-status">
+      <span class="dot" id="tx-dot"></span>
+      <span id="tx-state">connecting…</span>
+    </div>
+    <div class="next">next transmission <b id="tx-next">—</b></div>
+    <div class="spacer"></div>
+    <div class="mono muted" id="tx-mode">DB: —</div>
+  </div>
+
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">TRANSMIT<span>.</span>YT
+        <small>UPLOAD CONTROL</small>
+      </div>
+      <nav class="nav">
+        <a href="/" data-nav="dashboard"><span class="ico">◆</span>Dashboard</a>
+        <a href="/videos" data-nav="videos"><span class="ico">▸</span>Videos</a>
+        <a href="/schedule" data-nav="schedule"><span class="ico">◷</span>Schedule</a>
+        <a href="/analytics" data-nav="analytics"><span class="ico">▤</span>Analytics</a>
+        <a href="/integrations" data-nav="integrations"><span class="ico">⚙</span>Integrations</a>
+        <a href="/settings" data-nav="settings"><span class="ico">◎</span>Settings</a>
+      </nav>
+      <div class="nav-foot">
+        <div class="who">Signed in as <b>{{ session.get('user','') }}</b></div>
+        <a class="signout" href="/logout">Sign out</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

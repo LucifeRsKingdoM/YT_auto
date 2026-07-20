@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Integrations — Transmission Console{% endblock %}
+{% block page %}integrations{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Integrations</h1>
+  <p>Credentials, API keys and tokens. Any change must be confirmed with your safe word.</p>
+</div>
+
+<div class="grid two-col">
+  <div class="card">
+    <h2>YouTube <span class="tag">DATA + ANALYTICS API</span></h2>
+    <div id="yt-status" class="mono muted" style="margin-bottom:12px">checking…</div>
+    <label class="fld"><span>OAuth client ID</span><input data-field="yt_client_id"></label>
+    <label class="fld"><span>OAuth client secret</span><input data-field="yt_client_secret" placeholder="•••• leave blank to keep"></label>
+    <label class="fld"><span>Default upload privacy</span>
+      <select data-field="yt_default_privacy">
+        <option value="private">Private</option>
+        <option value="unlisted">Unlisted</option>
+        <option value="public">Public</option>
+      </select></label>
+    <a class="btn ghost sm" href="/integrations/youtube/authorize">Connect / re-authorize YouTube</a>
+  </div>
+
+  <div class="card">
+    <h2>Telegram <span class="tag">NOTIFICATIONS</span></h2>
+    <label class="fld"><span>Bot token</span><input data-field="telegram_bot_token" placeholder="•••• leave blank to keep"></label>
+    <label class="fld"><span>Chat ID</span><input data-field="telegram_chat_id"></label>
+
+    <h2 class="section-gap">Supabase <span class="tag">CLOUD STORAGE</span></h2>
+    <label class="fld"><span>Project URL</span><input data-field="supabase_url"></label>
+    <label class="fld"><span>Service key</span><input data-field="supabase_service_key" placeholder="•••• leave blank to keep"></label>
+    <label class="fld"><span>Bucket</span><input data-field="supabase_bucket"></label>
+  </div>
+</div>
+
+<div class="card section-gap">
+  <h2>Scheduler <span class="tag" id="db-mode-tag">—</span></h2>
+  <div class="flex between">
+    <div class="mono" id="sched-status">status: —</div>
+    <div class="flex">
+      <button class="btn ghost sm" id="sched-pause">Pause</button>
+      <button class="btn sm" id="sched-resume">Resume</button>
+    </div>
+  </div>
+</div>
+
+<div class="flex section-gap" style="justify-content:flex-end">
+  <button class="btn" id="save-integrations">Save changes</button>
+</div>
+
+<!-- safe word modal -->
+<div class="overlay" id="safe-modal">
+  <div class="modal">
+    <h3>Confirm with safe word</h3>
+    <div class="safe-note">Changing credentials is protected. Enter <b>your</b> safe word to apply.</div>
+    <label class="fld"><span>Safe word</span><input id="safe-input" type="password" autofocus></label>
+    <div class="modal-actions">
+      <button class="btn ghost" id="safe-cancel">Cancel</button>
+      <button class="btn" id="safe-confirm">Confirm & save</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
