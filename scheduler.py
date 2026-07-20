@@ -32,7 +32,8 @@ def run_upload(video_id: int):
     tmp_path = None
     is_temp = False
     try:
-        video = session.get(Video, video_id)
+        # Use joinedload right here so the schedule relationship is fetched inside the session
+        video = session.query(Video).options(joinedload(Video.schedule)).filter_by(id=video_id).first()
         if not video:
             return
         video.status = "uploading"
@@ -51,7 +52,7 @@ def run_upload(video_id: int):
         telegram.notify_upload_ok(video)
     except Exception as exc:  # noqa: BLE001 - we want to catch everything here
         session.rollback()
-        video = session.get(Video, video_id)
+        video = session.query(Video).options(joinedload(Video.schedule)).filter_by(id=video_id).first()
         err = str(exc)
         tb = traceback.format_exc()
         if video:
