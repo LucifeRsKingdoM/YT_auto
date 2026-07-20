@@ -1,15 +1,17 @@
-"""SQLAlchemy engine + session. Works for both Supabase Postgres and MySQL
-because we only ask config for the URL; the driver is chosen there.
+"""SQLAlchemy engine + session.
+
+Works with both Supabase PostgreSQL and MySQL.
+This version is configured to avoid DetachedInstanceError after commits.
 """
+
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, scoped_session, declarative_base
+from sqlalchemy.orm import declarative_base, scoped_session, sessionmaker
 
 from config import config
 
 Base = declarative_base()
 
-# For MySQL/Postgres a modest pool with pre-ping avoids stale connections
-# on laptops that sleep or servers that idle.
+# Database Engine
 engine = create_engine(
     config.DATABASE_URL,
     pool_pre_ping=True,
@@ -17,16 +19,38 @@ engine = create_engine(
     future=True,
 )
 
+# Session Factory
+#
+# expire_on_commit=False is VERY IMPORTANT.
+# It prevents SQLAlchemy from expiring ORM objects after session.commit(),
+# avoiding errors like:
+#
+# Parent instance <Video> is not bound to a Session;
+# lazy load operation of attribute 'schedule' cannot proceed
+#
 SessionLocal = scoped_session(
-    sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
+    sessionmaker(
+        bind=engine,
+        autoflush=False,
+        autocommit=False,
+        expire_on_commit=False,
+        future=True,
+    )
 )
 
 
 def init_db():
-    """Create all tables if they do not exist."""
-    import models  # noqa: F401  (registers models on Base)
+    """Create all database tables if they do not already exist."""
+    import models  # noqa: F401
+
     Base.metadata.create_all(bind=engine)
 
 
 def get_session():
+    """Return a new SQLAlchemy session."""
     return SessionLocal()
+
+
+def close_session():
+    """Dispose of the current scoped session."""
+    SessionLocal.remove()
