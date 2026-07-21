@@ -16,6 +16,8 @@
   </div>
 </div>
 
+
+
 <div class="tabs">
   <button data-tab="all" class="active">All</button>
   <button data-tab="scheduled">Scheduled</button>
@@ -32,6 +34,17 @@
   <div class="modal">
     <h3 id="vm-title">Add video</h3>
     <input type="hidden" id="vm-id">
+    <label for="youtube_account">Select Destination Channel:</label>
+<label class="fld">
+        <span>Target Channel Slot</span>
+        <select name="slot_number" id="vm-slot" required>
+            <option value="" disabled selected>Select channel slot</option>
+            {% for channel in channels %}
+                <option value="{{ channel.slot_number }}">Slot {{ channel.slot_number }}: {{ channel.channel_name }}</option>
+            {% endfor %}
+        </select>
+    </label>
+
     <label class="fld"><span>Title</span><input id="vm-title-in" required></label>
     <label class="fld"><span>Description</span><textarea id="vm-desc" rows="3"></textarea></label>
     <label class="fld"><span>Tags (comma separated)</span><input id="vm-tags"></label>

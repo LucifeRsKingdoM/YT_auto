@@ -3,7 +3,7 @@ import datetime as dt
 from flask import Blueprint, render_template, jsonify, request
 
 from database import get_session
-from models import Video, Schedule, ActivityLog
+from models import Video, Schedule, ActivityLog, YouTubeAccount
 from security import login_required, current_user
 from integrations import telegram
 
@@ -11,11 +11,7 @@ bp = Blueprint("schedule", __name__)
 
 
 def parse_iso_to_utc(value):
-    """Accept an ISO string (with Z or offset) and return naive UTC datetime.
-
-    The frontend sends local time already converted to UTC via toISOString(),
-    so everything stored in the DB is UTC and matches the scheduler's clock.
-    """
+    """Accept an ISO string (with Z or offset) and return naive UTC datetime."""
     if not value:
         return None
     v = value.replace("Z", "+00:00")
@@ -28,43 +24,80 @@ def parse_iso_to_utc(value):
 @bp.route("/schedule")
 @login_required
 def page():
-    return render_template("schedule.html")
+    user = current_user()
+    s = get_session()
+    try:
+        # Fetch user's channels so the schedule page can filter/display by slot
+        user_channels = s.query(YouTubeAccount).filter_by(owner_username=user).all()
+        return render_template("schedule.html", channels=user_channels)
+    finally:
+        s.close()
 
 
 @bp.route("/api/schedule/day")
 @login_required
 def day_view():
-    """Given ?date=YYYY-MM-DD, list videos scheduled that day + those free
-    to schedule (drafts with a file attached)."""
+    """Given ?date=YYYY-MM-DD&slot=X, list scheduled and available draft videos strictly for that user/slot."""
     date_str = request.args.get("date")
+    slot_filter = request.args.get("slot")
+    user = current_user()
+
     if not date_str:
         return jsonify({"error": "date required"}), 400
+
     day_start = dt.datetime.fromisoformat(date_str + "T00:00:00")
     day_end = day_start + dt.timedelta(days=1)
+    
     s = get_session()
     try:
-        scheduled = (
+        # Base query for scheduled videos restricted to current user
+        scheduled_q = (
             s.query(Video)
             .join(Schedule, Schedule.video_id == Video.id)
-            .filter(Schedule.scheduled_time >= day_start,
-                    Schedule.scheduled_time < day_end)
-            .order_by(Schedule.scheduled_time.asc())
-            .all()
+            .join(YouTubeAccount, Video.youtube_account_id == YouTubeAccount.id)
+            .filter(
+                Video.owner_username == user,
+                Schedule.scheduled_time >= day_start,
+                Schedule.scheduled_time < day_end
+            )
         )
-        available = (
+
+        # Base query for available drafts restricted to current user
+        available_q = (
             s.query(Video)
-            .filter(Video.status == "draft", Video.file_key != "")
-            .order_by(Video.created_at.asc())
-            .all()
+            .join(YouTubeAccount, Video.youtube_account_id == YouTubeAccount.id)
+            .filter(
+                Video.owner_username == user,
+                Video.status == "draft",
+                Video.file_key != ""
+            )
         )
+
+        # Apply slot filtering if requested
+        if slot_filter:
+            scheduled_q = scheduled_q.filter(YouTubeAccount.slot_number == int(slot_filter))
+            available_q = available_q.filter(YouTubeAccount.slot_number == int(slot_filter))
+
+        scheduled = scheduled_q.order_by(Schedule.scheduled_time.asc()).all()
+        available = available_q.order_by(Video.created_at.asc()).all()
+
         return jsonify({
             "date": date_str,
             "scheduled": [{
-                "id": v.id, "title": v.title,
+                "id": v.id, 
+                "title": v.title,
                 "scheduled_time": v.schedule.scheduled_time.isoformat() + "Z",
-                "slot": v.schedule.slot, "status": v.schedule.status,
+                "slot": v.schedule.slot, 
+                "status": v.schedule.status,
+                "channel_name": v.youtube_account.channel_name if v.youtube_account else "Unassigned",
+                "slot_number": v.youtube_account.slot_number if v.youtube_account else None
             } for v in scheduled],
-            "available": [{"id": v.id, "title": v.title} for v in available],
+            "available": [{
+                "id": v.id, 
+                "title": v.title,
+                "channel_name": v.youtube_account.channel_name if v.youtube_account else "Unassigned",
+                "slot_number": v.youtube_account.slot_number if v.youtube_account else None
+            } for v in available],
         })
     finally:
         s.close()
@@ -76,20 +109,25 @@ def schedule_individual():
     """Body: {video_id, scheduled_time (ISO UTC)}."""
     data = request.get_json(force=True)
     when = parse_iso_to_utc(data.get("scheduled_time"))
+    user = current_user()
+
     if not data.get("video_id") or not when:
         return jsonify({"error": "video_id and scheduled_time required"}), 400
+
     s = get_session()
     try:
-        v = s.get(Video, int(data["video_id"]))
+        # Ensure user can only schedule their own videos
+        v = s.query(Video).filter_by(id=int(data["video_id"]), owner_username=user).first()
         if not v:
             return jsonify({"error": "Video not found"}), 404
+
         _set_schedule(s, v, when, slot="", mode="individual")
-        s.add(ActivityLog(actor=current_user(), action="Scheduled video",
+        s.add(ActivityLog(actor=user, action="Scheduled video",
                           detail=f"{v.title} @ {when} UTC"))
         s.commit()
         telegram.notify_scheduled(v, when.isoformat())
         return jsonify({"ok": True})
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:  
         s.rollback()
         return jsonify({"error": str(exc)}), 400
     finally:
@@ -99,18 +137,13 @@ def schedule_individual():
 @bp.route("/api/schedule/slots", methods=["POST"])
 @login_required
 def schedule_slots():
-    """Body: {date:'YYYY-MM-DD', slots:['08:00','12:00','18:00'],
-             video_ids:[...], tz_offset_minutes:int}
-
-    Assigns video_ids in order into the slots. If there are more videos than
-    slots, it rolls over to the next day(s). tz_offset_minutes is the browser's
-    getTimezoneOffset() so 08:00 means 08:00 *local* to the user.
-    """
     data = request.get_json(force=True)
     date_str = data.get("date")
     slots = data.get("slots") or []
     video_ids = data.get("video_ids") or []
-    tz_off = int(data.get("tz_offset_minutes", 0))  # minutes to ADD to local->UTC
+    tz_off = int(data.get("tz_offset_minutes", 0))  
+    user = current_user()
+
     if not date_str or not slots or not video_ids:
         return jsonify({"error": "date, slots and video_ids are required"}), 400
 
@@ -126,18 +159,19 @@ def schedule_slots():
                 base_day + dt.timedelta(days=day_offset),
                 dt.time(hour=hh, minute=mm),
             )
-            # local -> UTC: getTimezoneOffset() is minutes to add to reach UTC
             when_utc = local_dt + dt.timedelta(minutes=tz_off)
-            v = s.get(Video, int(vid))
+            
+            v = s.query(Video).filter_by(id=int(vid), owner_username=user).first()
             if not v:
                 continue
             _set_schedule(s, v, when_utc, slot=slot, mode="slot")
             assigned += 1
-        s.add(ActivityLog(actor=current_user(), action="Slot schedule",
+
+        s.add(ActivityLog(actor=user, action="Slot schedule",
                           detail=f"{assigned} videos across slots {', '.join(slots)}"))
         s.commit()
         return jsonify({"ok": True, "assigned": assigned})
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:  
         s.rollback()
         return jsonify({"error": str(exc)}), 400
     finally:
@@ -147,9 +181,10 @@ def schedule_slots():
 @bp.route("/api/schedule/<int:video_id>", methods=["DELETE"])
 @login_required
 def unschedule(video_id):
+    user = current_user()
     s = get_session()
     try:
-        v = s.get(Video, video_id)
+        v = s.query(Video).filter_by(id=video_id, owner_username=user).first()
         if not v:
             return jsonify({"error": "Not found"}), 404
         if v.schedule:
@@ -157,7 +192,7 @@ def unschedule(video_id):
         if v.status == "scheduled":
             v.status = "draft"
         v.scheduled_time = None
-        s.add(ActivityLog(actor=current_user(), action="Unscheduled",
+        s.add(ActivityLog(actor=user, action="Unscheduled",
                           detail=v.title))
         s.commit()
         return jsonify({"ok": True})

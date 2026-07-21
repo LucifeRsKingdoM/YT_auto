@@ -7,20 +7,49 @@
   <p>Credentials, API keys and tokens. Any change must be confirmed with your safe word.</p>
 </div>
 
-<div class="grid two-col">
+<!-- NEW 5-SLOT YOUTUBE MANAGER -->
+<div style="margin-top: 15px; margin-bottom: 30px; padding: 20px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+    <h2 style="margin-top: 0; margin-bottom: 15px; color: #fff; font-size: 1.2rem;">Your YouTube Channels</h2>
+    <p style="color: #a1a1aa; margin-bottom: 20px; font-size: 0.9rem;">Connect up to 5 individual YouTube channels. Videos and uploads will be strictly isolated to these slots.</p>
   <div class="card">
-    <h2>YouTube <span class="tag">DATA + ANALYTICS API</span></h2>
-    <div id="yt-status" class="mono muted" style="margin-bottom:12px">checking…</div>
-    <label class="fld"><span>OAuth client ID</span><input data-field="yt_client_id"></label>
-    <label class="fld"><span>OAuth client secret</span><input data-field="yt_client_secret" placeholder="•••• leave blank to keep"></label>
-    <label class="fld"><span>Default upload privacy</span>
-      <select data-field="yt_default_privacy">
-        <option value="private">Private</option>
-        <option value="unlisted">Unlisted</option>
-        <option value="public">Public</option>
-      </select></label>
-    <a class="btn ghost sm" href="/integrations/youtube/authorize">Connect / re-authorize YouTube</a>
+    <h2>YouTube <span class="tag">CHANNELS STATUS</span></h2>
+    <p style="color: #a1a1aa; font-size: 0.85rem; margin-bottom: 15px;">Your connected channels status for upload pipeline.</p>
+    <div id="yt-status" class="mono muted" style="margin-bottom:12px">
+        {% set ns = namespace(connected=false) %}
+        {% for slot, channel in channel_slots.items() %}
+            {% if channel %}{% set ns.connected = true %}{% endif %}
+        {% endfor %}
+        
+        {% if ns.connected %}
+            <span style="color: #4ade80;">● YouTube connected with active channels</span>
+        {% else %}
+            <span style="color: #f87171;">● No YouTube channels connected yet</span>
+        {% endif %}
+    </div>
   </div>
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+        {% for slot, channel in channel_slots.items() %}
+            <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.25); padding: 12px 15px; border-radius: 6px; border-left: 4px solid {% if channel %}#4ade80{% else %}#3f3f46{% endif %};">
+                <div>
+                    <strong style="color: #888; margin-right: 15px; font-size: 1.1rem;">Slot {{ slot }}</strong>
+                    {% if channel %}
+                        <span style="color: #4ade80; font-weight: bold; font-size: 1.1rem;">{{ channel.channel_name }}</span>
+                    {% else %}
+                        <span style="color: #f87171; font-style: italic;">Empty Slot</span>
+                    {% endif %}
+                </div>
+                <div>
+                    <a class="btn ghost sm" href="/integrations/youtube/authorize/{{ slot }}">
+                        {% if channel %}Re-authorize{% else %}Connect Channel{% endif %}
+                    </a>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="grid two-col">
+  
 
   <div class="card">
     <h2>Telegram <span class="tag">NOTIFICATIONS</span></h2>

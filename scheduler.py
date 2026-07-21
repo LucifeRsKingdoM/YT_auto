@@ -1,21 +1,4 @@
-"""Scheduler + upload runner.
-
-Design choice for reliability: instead of trusting in-memory timers (which a
-laptop loses when it sleeps), the source of truth is the `schedules` table.
-A lightweight job ticks every 60 seconds and runs anything that is due, so a
-job scheduled while the machine was asleep runs on the first tick after wake.
-
-DUPLICATE-UPLOAD SAFETY (the important part):
-  1. Each due schedule is CLAIMED atomically with a single
-     UPDATE ... WHERE status='pending' statement. Only the caller whose
-     UPDATE actually changed a row proceeds; everyone else exits. This makes
-     it impossible for two ticks (or two processes) to upload the same video.
-  2. `video.youtube_video_id` is a permanent idempotency key. Once it is set,
-     the video is never uploaded again, even if its schedule somehow reappears.
-  3. On ANY error the schedule is marked 'failed', NEVER put back to 'pending'.
-     A failed schedule is not re-picked, so a single hiccup can no longer
-     spiral into endless re-uploads that burn the daily YouTube quota.
-"""
+"""Scheduler + upload runner."""
 import datetime as dt
 import os
 import traceback
@@ -43,10 +26,7 @@ def run_upload(video_id: int):
     is_temp = False
 
     try:
-        # --- ATOMIC CLAIM -------------------------------------------------
-        # Flip pending -> processing in one statement. `claimed` is the number
-        # of rows changed. If it is 0, someone else already took this schedule
-        # (or it is no longer pending) -> we do nothing and never upload twice.
+        # --- ATOMIC CLAIM ---
         claimed = (
             session.query(Schedule)
             .filter(Schedule.video_id == video_id,
@@ -58,17 +38,21 @@ def run_upload(video_id: int):
         if not claimed:
             return
 
+        # Load video, schedule, AND the specific YouTube account
         video = (
             session.query(Video)
-            .options(joinedload(Video.schedule))
+            .options(joinedload(Video.schedule), joinedload(Video.youtube_account))
             .filter(Video.id == video_id)
             .first()
         )
+        
         if not video or not video.schedule:
             return
+            
+        if not video.youtube_account:
+            raise Exception("No YouTube account linked to this video.")
 
-        # Idempotency guard: if this video already reached YouTube, mark the
-        # (just-claimed) schedule done and stop. Never re-upload.
+        # Idempotency guard
         if video.youtube_video_id or video.status == "uploaded":
             video.status = "uploaded"
             video.schedule.status = "done"
@@ -78,14 +62,13 @@ def run_upload(video_id: int):
         video.status = "uploading"
         session.commit()
 
-        # Resolve a real local file path for the uploader.
+        # Resolve path
         tmp_path, is_temp = resolve_upload_path(video)
 
-        # Upload to YouTube (raises on failure).
-        yt_id = youtube.upload_video(video, tmp_path)
+        # Upload using the specific user's credentials
+        yt_id = youtube.upload_video(video, tmp_path, video.youtube_account.credentials)
 
-        # Record success. From here youtube_video_id is the permanent
-        # idempotency key -- this video can never be uploaded again.
+        # Record success
         video.youtube_video_id = yt_id
         video.status = "uploaded"
         video.published_at = dt.datetime.utcnow()
@@ -111,9 +94,6 @@ def run_upload(video_id: int):
             .first()
         )
         if video:
-            # Mark FAILED, not pending. A failed schedule is never auto-retried,
-            # so errors can no longer cause repeated re-uploads. To try again,
-            # re-schedule the video from the Schedule page (a deliberate action).
             video.status = "failed"
             if video.schedule:
                 video.schedule.status = "failed"
@@ -133,7 +113,7 @@ def run_upload(video_id: int):
 
 
 def tick():
-    """Run every due, pending schedule. Also serves as catch-up on startup."""
+    """Run every due, pending schedule."""
     if _paused:
         return
     session = get_session()
@@ -160,7 +140,6 @@ def start_scheduler():
     _scheduler.add_job(tick, "interval", seconds=60, id="tick",
                        max_instances=1, coalesce=True)
     _scheduler.start()
-    # immediate catch-up for anything missed while the app was off
     try:
         tick()
     except Exception:

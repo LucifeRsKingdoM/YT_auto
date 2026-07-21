@@ -2,7 +2,6 @@
 
 Compatible with both Supabase PostgreSQL and local MySQL.
 """
-
 import datetime as dt
 
 from sqlalchemy import (
@@ -14,6 +13,7 @@ from sqlalchemy import (
     BigInteger,
     ForeignKey,
     Boolean,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
 
@@ -32,6 +32,22 @@ class Admin(Base):
     password_hash = Column(String(255), nullable=False)
     safeword_hash = Column(String(255), nullable=False)
     created_at = Column(DateTime, default=utcnow)
+
+
+# 1. New table to hold exactly 5 explicit account slots per user
+class YouTubeAccount(Base):
+    __tablename__ = 'youtube_accounts'
+    
+    id = Column(Integer, primary_key=True)
+    owner_username = Column(String(50), nullable=False) 
+    slot_number = Column(Integer, nullable=False)       # Will store 1, 2, 3, 4, or 5
+    channel_name = Column(String(255), nullable=False)  
+    credentials = Column(Text, nullable=False)          
+
+    # This enforces that a user can only have one of each slot (e.g., only one "Channel 1")
+    __table_args__ = (
+        UniqueConstraint('owner_username', 'slot_number', name='uix_owner_slot'),
+    )
 
 
 class Video(Base):
@@ -59,6 +75,13 @@ class Video(Base):
 
     created_at = Column(DateTime, default=utcnow)
     updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+    # Multi-Tenant Ownership (Who uploaded it, and to which channel)
+    owner_username = Column(String(50), nullable=False, default="Lucifer")
+    youtube_account_id = Column(Integer, ForeignKey('youtube_accounts.id'), nullable=True)
+    
+    # Relationships
+    youtube_account = relationship("YouTubeAccount")
 
     schedule = relationship(
         "Schedule",
@@ -99,11 +122,6 @@ class Schedule(Base):
     slot = Column(String(10), default="")
     mode = Column(String(20), default="individual")
     status = Column(String(20), default="pending")
-# Values:
-# pending
-# processing
-# done
-# failed
     created_at = Column(DateTime, default=utcnow)
 
     video = relationship(
@@ -146,8 +164,6 @@ class UploadFailure(Base):
 
 
 class Integration(Base):
-    """Encrypted key/value store for integrations."""
-
     __tablename__ = "integrations"
 
     id = Column(Integer, primary_key=True)
